@@ -27,7 +27,7 @@ num_female_patients = df[df['gender'].str.lower() == 'female']['patient_id'].nun
 num_male_patients = df[df['gender'].str.lower() == 'male']['patient_id'].nunique()
 
 
-st.subheader("Dashboard Overview")
+st.subheader("Patient Analytics Overview")
 # Display the statistics as big numbers
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
@@ -59,9 +59,8 @@ with col8:
 
 
 
-# Allow users to select medical attributes for charting
-medical_attributes = [col for col in df.columns if col != 'patient_id']
-medical_attribute = st.selectbox("Select a medical attribute to visualize", medical_attributes)
+medical_attribute = st.selectbox("Select a medical attribute for charting", ['age', 'gender', 'collection_date'] + list(df['medical_attribute_name'].unique()))
+
 
 # Create a chart based on the selected medical attribute
 if medical_attribute in ['age', 'gender', 'collection_date']:
@@ -79,13 +78,71 @@ if medical_attribute in ['age', 'gender', 'collection_date']:
     
     st.plotly_chart(fig)
 else:
-    if pd.api.types.is_numeric_dtype(df[medical_attribute]):
-        st.subheader(f"Histogram of {medical_attribute}")
-        fig = px.histogram(df, x=medical_attribute)
-    elif pd.api.types.is_object_dtype(df[medical_attribute]):
-        st.subheader(f"Bar Chart of {medical_attribute}")
-        value_counts = df[medical_attribute].value_counts()
-        fig = px.bar(x=value_counts.index, y=value_counts.values)
-        fig.update_layout(xaxis_title=medical_attribute, yaxis_title="Count")
+    filtered_df = df[df['medical_attribute_name'] == medical_attribute]
+    min_value = filtered_df['medical_attribute_min'].min()
+    max_value = filtered_df['medical_attribute_max'].max()
+
     
+    
+    if pd.api.types.is_numeric_dtype(filtered_df['medical_attribute_result']):
+        st.subheader(f"Histogram of {medical_attribute} Results")        
+        st.write(f"Range of {medical_attribute}: {min_value:.2f} - {max_value:.2f}")
+
+        fig = px.histogram(filtered_df, x='medical_attribute_result')
+    elif pd.api.types.is_object_dtype(filtered_df['medical_attribute_result']):
+        st.subheader(f"Bar Chart of {medical_attribute} Results")
+        st.write(f"Range of {medical_attribute}: {min_value:.2f} - {max_value:.2f}")
+
+        value_counts = filtered_df['medical_attribute_result'].value_counts()
+        fig = px.bar(x=value_counts.index, y=value_counts.values)
+        fig.update_layout(xaxis_title='medical_attribute_result', yaxis_title="Count")
+    
+    fig.update_layout(
+        xaxis_title='medical_attribute_result',
+        yaxis_title="Count",
+        annotations=[
+            dict(
+                x=min_value,
+                y=0,
+                xref="x",
+                yref="y",
+                text=f"Min: {min_value:.2f}",
+                showarrow=True,
+                arrowhead=2,
+                ax=-20,
+                ay=-30,
+                bgcolor="yellow",
+                bordercolor="black",
+                borderwidth=1,
+                borderpad=4,
+                font=dict(color="black"),
+            ),
+            dict(
+                x=max_value,
+                y=0,
+                xref="x",
+                yref="y",
+                text=f"Max: {max_value:.2f}",
+                showarrow=True,
+                arrowhead=2,
+                ax=20,
+                ay=-30,
+                bgcolor="yellow",
+                bordercolor="black",
+                borderwidth=1,
+                borderpad=4,
+                font=dict(color="black"),
+            )
+        ]
+    )
     st.plotly_chart(fig)
+    # if pd.api.types.is_numeric_dtype(df[medical_attribute]):
+    #     st.subheader(f"Histogram of {medical_attribute}")
+    #     fig = px.histogram(df, x=medical_attribute)
+    # elif pd.api.types.is_object_dtype(df[medical_attribute]):
+    #     st.subheader(f"Bar Chart of {medical_attribute}")
+    #     value_counts = df[medical_attribute].value_counts()
+    #     fig = px.bar(x=value_counts.index, y=value_counts.values)
+    #     fig.update_layout(xaxis_title=medical_attribute, yaxis_title="Count")
+    
+    # st.plotly_chart(fig)
